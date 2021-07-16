@@ -12,7 +12,7 @@
     "homepage": "https://github.com/sunmingyang/surl",
     "keywords": ["Laravel", "short-url"],
     "require": {
-        "illuminate/support": "^5"
+        "illuminate/support": "~5.5|~6.0|~7.0|~8.0"
     },
     "require-dev": {
     },

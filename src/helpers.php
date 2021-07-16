@@ -5,35 +5,37 @@ namespace HaiXin\Surl\Helpers;
 use HaiXin\Surl\Facades\Surl;
 
 if (function_exists('surl_encode') === false) {
-    function surl_encode($url): string
+    function surl_encode($url = null): string
     {
         return Surl::url($url)->encode()->code();
     }
 }
 if (function_exists('surl_decode') === false) {
-    function surl_decode($code, bool $increment = true)
+    function surl_decode($code = null, bool $increment = true, $expires = false)
     {
-        return Surl::decode($code, $increment);
+        return Surl::decode($code, $increment, $expires);
     }
 }
-
 if (function_exists('surl_save') === false) {
     function surl_save($url, $expires = null)
     {
-        return Surl::url($url)->expires($expires)->encode()->save()->model();
+        $surl = Surl::url($url);
+    
+        if ($expires !== null) {
+            $surl->expires($expires);
+        }
+    
+        return $surl->encode()->save()->model();
     }
 }
-
 if (function_exists('surl') === false) {
     function surl($url, $expires = null): string
     {
-        return Surl::url($url)->expires($expires)->encode()->save()->toString();
-    }
-}
-
-if (function_exists('surl_domain') === false) {
-    function surl_domain(): string
-    {
-        return Surl::domain();
+        $surl = Surl::url($url);
+    
+        if ($expires !== null) {
+            $surl->expires($expires);
+        }
+        return $surl->encode()->save()->toString();
     }
 }

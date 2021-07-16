@@ -2,7 +2,6 @@
 
 namespace HaiXin\Surl;
 
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class SurlServiceProvider extends ServiceProvider
@@ -40,11 +39,11 @@ class SurlServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__.'/../database/migrations' => database_path('migrations'),
-            ],'surl-migration');
-            
+            ], 'surl-migration');
+    
             $this->publishes([
                 __DIR__.'/../config/surl.php' => config_path('surl.php'),
-            ],'surl-config');
+            ], 'surl-config');
         }
     }
     
@@ -56,10 +55,10 @@ class SurlServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../config/surl.php', 'surl');
-        
+    
         // Register the service the package provides.
-        $this->app->singleton('surl', function () {
-            return new Surl();
+        $this->app->singleton('surl', function ($app) {
+            return new Surl($app['config']->get('surl'));
         });
     }
     

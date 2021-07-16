@@ -5,88 +5,53 @@ namespace HaiXin\Surl;
 use Carbon\Carbon;
 use HaiXin\Surl\Exceptions\ExpiresException;
 use Illuminate\Support\Str;
+use RuntimeException;
 
+/**
+ * Class Surl
+ * @method url($url = null) 设置/获取 url
+ * @method code($code = null) 设置/获取 code
+ * @method path($path = null) 设置/获取 path
+ * @method model($model = null) 设置/获取 model
+ * @method domain($domain = null) 设置/获取 domain
+ * @method expires($url = null) 设置/获取 expires
+ *
+ * @package HaiXin\Surl
+ */
 class Surl
 {
     protected $url;
     protected $code;
     protected $path;
     protected $model;
+    protected $config;
     protected $domain;
     protected $expires;
     
-    public function __construct($url = null)
+    public function __construct(array $config)
     {
-        if ($url !== null) {
-            $this->url($url);
-        }
+        $this->config($config);
     }
     
-    /**
-     * 设置网址
-     *
-     * @param $url
-     *
-     * @return $this
-     */
-    public function url($url): Surl
+    public function config(array $config = null)
     {
-        $this->url = $url;
-        
-        return $this;
-    }
-    
-    public static function __callStatic($name, $params): Surl
-    {
-        return (new self())->{$name}(...$params);
-    }
-    
-    public function expires($date = null): Surl
-    {
-        if ($date === null) {
-            $date = now()->addYear()->toDateTimeString();
+        if ($config !== null) {
+            $this->config = $config;
+            
+            foreach ($config as $key => $value) {
+                if ($this->has($key) === true) {
+                    $this->{$key} = $value;
+                }
+            }
+            return $this;
         }
         
-        $this->expires = Carbon::parse($date)->toDateTimeString();
-        
-        return $this;
+        return $this->config;
     }
     
-    /**
-     * 设置域名
-     *
-     * @param $domain
-     *
-     * @return $this
-     */
-    public function setDomain($domain): Surl
+    public function has($name): bool
     {
-        $this->domain = $domain;
-        return $this;
-    }
-    
-    /**
-     * 设置路径
-     *
-     * @param $path
-     *
-     * @return $this
-     */
-    public function setPath($path): Surl
-    {
-        $this->path = $path;
-        
-        return $this;
-    }
-    
-    /**
-     * 获取 code
-     *
-     * @return mixed
-     */
-    public function code()
-    {
-        return $this->code;
+        return property_exists($this, $name);
     }
     
     /**
@@ -106,18 +71,40 @@ class Surl
      *
      * @return string
      */
-    public function toString($url = null): string
+    public function toString(): string
     {
-        if ($url !== null) {
-            $this->url($url)->encode()->save();
-        }
-        
         return Str::of($this->domain())
                   ->finish('/')
                   ->append(Str::of($this->path())->finish('/'))
-                  ->append($this->model()->code)
+                  ->append($this->code())
                   ->replace('//', '/')
                   ->__toString();
+    }
+    
+    public function __call($name, $params = null)
+    {
+        if (empty($params) === true && $this->validate($name) === true) {
+            return $this->{$name};
+        }
+        
+        if ($params !== null && $this->has($name) === true) {
+            $this->{$name} = $params['0'];
+            
+            return $this;
+        }
+        
+        throw new RuntimeException("属性 {$name} 不存在", 404);
+    }
+    
+    protected function validate($name): bool
+    {
+        throw_if(
+            $this->has($name) === false || $this->{$name} === null,
+            RuntimeException::class,
+            "未设置{$name}"
+        );
+        
+        return true;
     }
     
     /**
@@ -127,19 +114,15 @@ class Surl
      *
      * @return $this
      */
-    public function save($url = null): Surl
+    public function save(): Surl
     {
-        if ($url !== null) {
-            $this->encode($url);
-        }
-        
-        $values = ['url' => $this->url];
+        $values = ['url' => $this->url()];
         
         if ($this->expires !== null) {
-            $values['expires_at'] = $this->expires;
+            $values['expires_at'] = $this->expires();
         }
         
-        $this->model = Model::code($this->code)->firstOrCreate(['code' => $this->code], $values);
+        $this->model = Model::code($this->code())->firstOrCreate(['code' => $this->code()], $values);
         
         return $this;
     }
@@ -151,13 +134,9 @@ class Surl
      *
      * @return $this
      */
-    public function encode($url = null): Surl
+    public function encode(): Surl
     {
-        if ($url !== null) {
-            $this->url($url);
-        }
-        
-        $abstract = sprintf('%u', crc32($this->url));
+        $abstract = sprintf('%u', crc32($this->url()));
         $code     = '';
         
         while ($abstract > 0) {
@@ -171,65 +150,17 @@ class Surl
             $abstract = floor($abstract / 62);
         }
         
-        $this->code = $code;
+        $this->code($code);
         
         return $this;
-    }
-    
-    /**
-     * 获取域名
-     *
-     * @return mixed
-     */
-    public function domain(): string
-    {
-        if ($this->domain === null) {
-            $this->domain = config('surl.domain');
-        }
-        
-        return $this->domain;
-    }
-    
-    /**
-     * 获取路径
-     *
-     * @return string
-     */
-    public function path(): string
-    {
-        if ($this->path === null) {
-            $this->path = config('surl.path');
-        }
-        
-        return $this->path;
-    }
-    
-    /**
-     * 获取 model
-     *
-     * @return mixed
-     */
-    public function model()
-    {
-        return $this->model;
-    }
-    
-    /**
-     *  获取原始网址
-     *
-     * @return string
-     */
-    public function getUrl()
-    {
-        return $this->url;
     }
     
     /**
      * 解码，code 换网址
      *
      * @param        $code
-     * @param  bool  $increment
-     * @param  bool  $expires
+     * @param  bool  $increment  每次访问，是否增加访问次数
+     * @param  bool  $expires    超过有效期的网址是否允许继续访问
      *
      * @return mixed
      */
@@ -242,8 +173,8 @@ class Surl
         if ($increment === true) {
             $builder->increment('visits');
         }
-        
-        if ($expires === true && $model->expires_at instanceof Carbon && $model->expires_at->lte(now())) {
+    
+        if ($expires === false && $model->expires_at instanceof Carbon && $model->expires_at->lte(now())) {
             throw new ExpiresException("已过期", 403);
         }
         
