@@ -2,6 +2,8 @@
 
 namespace HaiXin\Surl;
 
+use Carbon\Carbon;
+use HaiXin\Surl\Exceptions\ExpiresException;
 use Illuminate\Support\Str;
 
 class Surl
@@ -11,6 +13,7 @@ class Surl
     protected $path;
     protected $model;
     protected $domain;
+    protected $expires;
     
     public function __construct($url = null)
     {
@@ -36,6 +39,17 @@ class Surl
     public static function __callStatic($name, $params): Surl
     {
         return (new self())->{$name}(...$params);
+    }
+    
+    public function expires($date = null): Surl
+    {
+        if ($date === null) {
+            $date = now()->addYear()->toDateTimeString();
+        }
+        
+        $this->expires = Carbon::parse($date)->toDateTimeString();
+        
+        return $this;
     }
     
     /**
@@ -119,7 +133,13 @@ class Surl
             $this->encode($url);
         }
         
-        $this->model = Model::code($this->code)->firstOrCreate(['code' => $this->code], ['url' => $this->url]);
+        $values = ['url' => $this->url];
+        
+        if ($this->expires !== null) {
+            $values['expires_at'] = $this->expires;
+        }
+        
+        $this->model = Model::code($this->code)->firstOrCreate(['code' => $this->code], $values);
         
         return $this;
     }
@@ -193,25 +213,27 @@ class Surl
     {
         return $this->model;
     }
-
+    
     /**
      *  获取原始网址
      *
-     *  @return string
+     * @return string
      */
-    public function getUrl(){
+    public function getUrl()
+    {
         return $this->url;
     }
-
+    
     /**
      * 解码，code 换网址
      *
      * @param        $code
      * @param  bool  $increment
+     * @param  bool  $expires
      *
      * @return mixed
      */
-    public function decode($code, bool $increment = true)
+    public function decode($code, bool $increment = true, bool $expires = true)
     {
         $builder = Model::code($code);
         
@@ -219,6 +241,10 @@ class Surl
         
         if ($increment === true) {
             $builder->increment('visits');
+        }
+        
+        if ($expires === true && $model->expires_at instanceof Carbon && $model->expires_at->lte(now())) {
+            throw new ExpiresException("已过期", 403);
         }
         
         $this->model = $model;

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model as BasicModel;
 class Model extends BasicModel
 {
     protected $guarded = [];
+    protected $dates   = ['expires_at'];
     
     public function __construct(array $attributes = [])
     {

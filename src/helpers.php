@@ -1,6 +1,8 @@
 <?php
 
-namespace HaiXin\Surl;
+namespace HaiXin\Surl\Helpers;
+
+use HaiXin\Surl\Facades\Surl;
 
 if (function_exists('surl_encode') === false) {
     function surl_encode($url): string
@@ -14,17 +16,18 @@ if (function_exists('surl_decode') === false) {
         return Surl::decode($code, $increment);
     }
 }
+
 if (function_exists('surl_save') === false) {
-    function surl_save($url)
+    function surl_save($url, $expires = null)
     {
-        return Surl::url($url)->encode()->save()->model();
+        return Surl::url($url)->expires($expires)->encode()->save()->model();
     }
 }
 
 if (function_exists('surl') === false) {
-    function surl($url): string
+    function surl($url, $expires = null): string
     {
-        return Surl::url($url)->encode()->save()->toString();
+        return Surl::url($url)->expires($expires)->encode()->save()->toString();
     }
 }
 
