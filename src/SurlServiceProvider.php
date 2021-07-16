@@ -14,34 +14,8 @@ class SurlServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->registerRoutes();
         $this->registerMigrations();
         $this->registerPublishing();
-    }
-    
-    /**
-     * Register the package routes.
-     *
-     * @return void
-     */
-    private function registerRoutes(): void
-    {
-        Route::group($this->routeConfiguration(), function () {
-            $this->loadRoutesFrom(__DIR__.'/Http/routes.php');
-        });
-    }
-    
-    /**
-     * Get the sUrl route group configuration array.
-     *
-     * @return array
-     */
-    private function routeConfiguration(): array
-    {
-        return [
-            'namespace' => 'HaiXin\Surl\Http\Controllers',
-            'prefix'    => config('surl.path'),
-        ];
     }
     
     /**
