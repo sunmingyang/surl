@@ -116,7 +116,7 @@ class Surl
      */
     public function save(): Surl
     {
-        $values = ['url' => $this->url()];
+        $values = ['url' => $this->url(), 'expires_at' => now()->addYear()->toDateTimeString()];
         
         if ($this->expires !== null) {
             $values['expires_at'] = $this->expires();
